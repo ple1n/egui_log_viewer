@@ -13,6 +13,9 @@ rendering every row every frame.
 - **Select rows, not characters.** Drag or Shift-click to select a row range.
   Scrollbars and the mouse wheel still work during selection; dragging beyond
   the viewport edge scrolls while extending the selection.
+- **Control nested scrolling.** Wheel input stays within the viewer at its
+  scroll boundaries, except for the rightmost 20 points, which pass scrolling
+  to the parent panel. This pass-through strip has a subtle hover highlight.
 - **Copy selection with Ctrl+C.** Supply the plain-text format for each row;
   the widget copies the selected range.
 - **Put real egui UI in rows.** Render labels, buttons, progress bars, or any

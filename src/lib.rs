@@ -6,6 +6,7 @@ use egui::{scroll_area::ScrollSource, Ui, Vec2};
 
 const ROW_GAP: f32 = 4.0;
 const ROW_CONTENT_SPACING: Vec2 = Vec2::new(8.0, 3.0);
+const PARENT_SCROLL_WIDTH: f32 = 20.0;
 
 pub trait LogRows {
     type Row;
@@ -228,7 +229,8 @@ impl LogViewer {
     /// vertically), with a 4-point gap between rows.
     /// The row text callback supplies the plain-text representation used by
     /// the widget's Ctrl+C handling for the selected range. Wheel input is
-    /// contained within the viewer at its scroll boundaries.
+    /// contained within the viewer at its scroll boundaries except in the
+    /// rightmost 20 points, where it propagates to the parent scroll area.
     pub fn show_rows<R, IdSource>(
         ui: &mut Ui,
         id_source: IdSource,
@@ -262,11 +264,34 @@ impl LogViewer {
             state.selection = Selection::default();
         }
 
+        let available_rect = ui.available_rect_before_wrap();
+        let parent_scroll_rect = egui::Rect::from_min_max(
+            egui::pos2(
+                (available_rect.right() - PARENT_SCROLL_WIDTH).max(available_rect.left()),
+                available_rect.top(),
+            ),
+            egui::pos2(
+                available_rect.right(),
+                (available_rect.top() + max_height).min(available_rect.bottom()),
+            ),
+        );
+        let pointer_in_parent_scroll_rect = ui.input(|input| {
+            input
+                .pointer
+                .interact_pos()
+                .is_some_and(|pointer_pos| parent_scroll_rect.contains(pointer_pos))
+        });
+        let scroll_source = if pointer_in_parent_scroll_rect {
+            ScrollSource::SCROLL_BAR
+        } else {
+            ScrollSource::SCROLL_BAR | ScrollSource::MOUSE_WHEEL
+        };
+
         let scroll_output = egui::ScrollArea::both()
             .id_salt(scroll_id)
             .max_height(max_height)
             .auto_shrink([false, false])
-            .scroll_source(ScrollSource::SCROLL_BAR | ScrollSource::MOUSE_WHEEL)
+            .scroll_source(scroll_source)
             .show_viewport(ui, |ui, viewport| {
                 ui.style_mut().interaction.selectable_labels = false;
                 ui.set_height(state.heights.total());
@@ -447,11 +472,30 @@ impl LogViewer {
                     }
                 }
             });
+        let parent_scroll_response = ui
+            .interact(
+                parent_scroll_rect,
+                viewer_id.with("parent_scroll"),
+                egui::Sense::hover(),
+            )
+            .on_hover_text("Scroll parent panel");
+        ui.painter().rect_filled(
+            parent_scroll_rect,
+            egui::CornerRadius::ZERO,
+            egui::Color32::from_black_alpha(if parent_scroll_response.hovered() {
+                30
+            } else {
+                12
+            }),
+        );
         ui.input_mut(|input| {
             if input
                 .pointer
                 .interact_pos()
-                .is_some_and(|pointer_pos| scroll_output.inner_rect.contains(pointer_pos))
+                .is_some_and(|pointer_pos| {
+                    scroll_output.inner_rect.contains(pointer_pos)
+                        && !parent_scroll_rect.contains(pointer_pos)
+                })
             {
                 input.smooth_scroll_delta = Vec2::ZERO;
             }
