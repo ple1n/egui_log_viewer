@@ -6,7 +6,7 @@ use egui::{scroll_area::ScrollSource, Ui, Vec2};
 
 const ROW_GAP: f32 = 4.0;
 const ROW_CONTENT_SPACING: Vec2 = Vec2::new(8.0, 3.0);
-const PARENT_SCROLL_WIDTH: f32 = 20.0;
+const PARENT_SCROLL_WIDTH: f32 = 200.0;
 
 pub trait LogRows {
     type Row;
