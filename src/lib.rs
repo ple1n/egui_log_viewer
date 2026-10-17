@@ -227,7 +227,8 @@ impl LogViewer {
     /// The callback UI uses compact spacing (8 points horizontally, 3
     /// vertically), with a 4-point gap between rows.
     /// The row text callback supplies the plain-text representation used by
-    /// the widget's Ctrl+C handling for the selected range.
+    /// the widget's Ctrl+C handling for the selected range. Wheel input is
+    /// contained within the viewer at its scroll boundaries.
     pub fn show_rows<R, IdSource>(
         ui: &mut Ui,
         id_source: IdSource,
@@ -261,7 +262,7 @@ impl LogViewer {
             state.selection = Selection::default();
         }
 
-        egui::ScrollArea::both()
+        let scroll_output = egui::ScrollArea::both()
             .id_salt(scroll_id)
             .max_height(max_height)
             .auto_shrink([false, false])
@@ -446,6 +447,15 @@ impl LogViewer {
                     }
                 }
             });
+        ui.input_mut(|input| {
+            if input
+                .pointer
+                .interact_pos()
+                .is_some_and(|pointer_pos| scroll_output.inner_rect.contains(pointer_pos))
+            {
+                input.smooth_scroll_delta = Vec2::ZERO;
+            }
+        });
 
         let copy_requested = ui.input(|input| input.events.contains(&egui::Event::Copy));
         let has_focus = ui.memory(|memory| memory.has_focus(viewer_id));
