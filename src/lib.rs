@@ -479,14 +479,25 @@ impl LogViewer {
                 egui::Sense::hover(),
             )
             .on_hover_text("Scroll parent panel");
+        let (overlay, edge) = if parent_scroll_response.hovered() {
+            (
+                egui::Color32::from_rgba_unmultiplied(120, 145, 180, 54),
+                egui::Color32::from_rgba_unmultiplied(155, 185, 225, 150),
+            )
+        } else {
+            (
+                egui::Color32::from_rgba_unmultiplied(100, 115, 140, 34),
+                egui::Color32::from_rgba_unmultiplied(125, 140, 165, 75),
+            )
+        };
         ui.painter().rect_filled(
             parent_scroll_rect,
             egui::CornerRadius::ZERO,
-            egui::Color32::from_black_alpha(if parent_scroll_response.hovered() {
-                30
-            } else {
-                12
-            }),
+            overlay,
+        );
+        ui.painter().line_segment(
+            [parent_scroll_rect.left_top(), parent_scroll_rect.left_bottom()],
+            egui::Stroke::new(1.0, edge),
         );
         ui.input_mut(|input| {
             if input
